@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>抽奖数据管理后台</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            background: #0d1117;
+            color: #c9d1d9;
+            font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        /* 登录框 */
+        .login-box {
+            max-width: 420px;
+            margin: 100px auto;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        .login-box h2 {
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #f0f6fc;
+        }
+        .login-box p {
+            color: #8b949e;
+            font-size: 14px;
+            margin-bottom: 25px;
+        }
+        .login-box input {
+            width: 100%;
+            padding: 12px 16px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            color: #c9d1d9;
+            font-size: 16px;
+            outline: none;
+            transition: border 0.3s;
+        }
+        .login-box input:focus {
+            border-color: #58a6ff;
+        }
+        .login-box button {
+            width: 100%;
+            margin-top: 16px;
+            padding: 12px;
+            background: #238636;
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .login-box button:hover { background: #2ea043; }
+        .login-box .error {
+            color: #f85149;
+            font-size: 14px;
+            margin-top: 12px;
+            display: none;
+        }
+
+        /* 数据展示 */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            padding: 20px 0;
+            border-bottom: 1px solid #30363d;
+            margin-bottom: 25px;
+        }
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #f0f6fc;
+        }
+        .header .stats {
+            display: flex;
+            gap: 25px;
+            font-size: 14px;
+            color: #8b949e;
+        }
+        .header .stats span { color: #f0f6fc; font-weight: 600; }
+        .header .logout-btn {
+            padding: 8px 20px;
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #c9d1d9;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+        .header .logout-btn:hover {
+            background: #30363d;
+            border-color: #f85149;
+            color: #f85149;
+        }
+
+        /* 表格 */
+        .table-wrap {
+            overflow-x: auto;
+            background: #161b22;
+            border-radius: 12px;
+            border: 1px solid #30363d;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            min-width: 900px;
+        }
+        th {
+            text-align: left;
+            padding: 14px 16px;
+            background: #0d1117;
+            color: #8b949e;
+            font-weight: 500;
+            border-bottom: 1px solid #30363d;
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #21262d;
+            vertical-align: middle;
+        }
+        tr:hover td { background: #1c2128; }
+        .badge {
+            display: inline-block;
+            padding: 2px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .badge-ios { background: #1a3a4a; color: #58a6ff; }
+        .badge-android { background: #2d1f1f; color: #f0883e; }
+        .badge-pc { background: #21262d; color: #8b949e; }
+        .badge-unknown { background: #161b22; color: #484f58; }
+        .ip-text {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            color: #58a6ff;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #484f58;
+        }
+        .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+        .refresh-btn {
+            padding: 6px 16px;
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #c9d1d9;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.3s;
+        }
+        .refresh-btn:hover { background: #30363d; }
+        .time-col { color: #8b949e; font-size: 13px; white-space: nowrap; }
+        .os-col { white-space: nowrap; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container" id="app">
+        <!-- 登录界面 -->
+        <div id="loginPanel" class="login-box">
+            <h2>🔐 管理后台</h2>
+            <p>请输入访问密钥</p>
+            <input type="password" id="keyInput" placeholder="请输入密钥..." autocomplete="off" />
+            <button id="loginBtn">验证身份</button>
+            <div class="error" id="loginError">❌ 密钥错误，请重试</div>
+        </div>
+
+        <!-- 数据面板 -->
+        <div id="dataPanel" class="hidden">
+            <div class="header">
+                <div>
+                    <h1>📊 访问数据</h1>
+                    <div class="stats" style="margin-top:8px;">
+                        总记录: <span id="totalCount">0</span>
+                        · iOS: <span id="iosCount">0</span>
+                        · Android: <span id="androidCount">0</span>
+                        · PC/其他: <span id="otherCount">0</span>
+                    </div>
+                </div>
+                <div style="display:flex;gap:10px;align-items:center;">
+                    <button class="refresh-btn" id="refreshBtn">🔄 刷新</button>
+                    <button class="logout-btn" id="logoutBtn">退出</button>
+                </div>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>时间</th>
+                            <th>IP 地址</th>
+                            <th>设备类型</th>
+                            <th>系统版本</th>
+                            <th>来源页面</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataBody">
+                        <tr><td colspan="6" class="empty-state">
+                            <div class="icon">📭</div>
+                            <div>暂无数据，等待用户访问...</div>
+                        </td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========== 配置 ==========
+        const WORKER_URL = 'https://your-worker.workers.dev'; // 改成你的Worker地址
+        const ADMIN_KEY = 'Lucky2026@Secure!'; // ⚠️ 密钥在这里！请修改
+        // ==========================
+
+        let currentData = [];
+
+        // DOM 元素
+        const loginPanel = document.getElementById('loginPanel');
+        const dataPanel = document.getElementById('dataPanel');
+        const keyInput = document.getElementById('keyInput');
+        const loginBtn = document.getElementById('loginBtn');
+        const loginError = document.getElementById('loginError');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const dataBody = document.getElementById('dataBody');
+        const totalCount = document.getElementById('totalCount');
+        const iosCount = document.getElementById('iosCount');
+        const androidCount = document.getElementById('androidCount');
+        const otherCount = document.getElementById('otherCount');
+
+        // 登录
+        function doLogin() {
+            const key = keyInput.value.trim();
+            if (key === ADMIN_KEY) {
+                loginPanel.style.display = 'none';
+                dataPanel.classList.remove('hidden');
+                loginError.style.display = 'none';
+                loadData();
+                // 自动刷新 每30秒
+                if (window._refreshInterval) clearInterval(window._refreshInterval);
+                window._refreshInterval = setInterval(loadData, 30000);
+            } else {
+                loginError.style.display = 'block';
+                keyInput.value = '';
+                keyInput.focus();
+            }
+        }
+
+        loginBtn.addEventListener('click', doLogin);
+        keyInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+
+        // 退出
+        logoutBtn.addEventListener('click', () => {
+            if (window._refreshInterval) clearInterval(window._refreshInterval);
+            loginPanel.style.display = 'block';
+            dataPanel.classList.add('hidden');
+            keyInput.value = '';
+            loginError.style.display = 'none';
+        });
+
+        // 刷新
+        refreshBtn.addEventListener('click', loadData);
+
+        // 加载数据
+        async function loadData() {
+            try {
+                const res = await fetch(WORKER_URL + '?admin=true&key=' + ADMIN_KEY);
+                if (!res.ok) throw new Error('请求失败');
+                const data = await res.json();
+                currentData = data.records || [];
+                renderTable(currentData);
+                updateStats(currentData);
+            } catch (err) {
+                console.error('加载失败:', err);
+                dataBody.innerHTML = `<tr><td colspan="6" class="empty-state">
+                    <div class="icon">⚠️</div>
+                    <div>加载失败，请检查网络或Worker配置</div>
+                </td></tr>`;
+            }
+        }
+
+        // 渲染表格
+        function renderTable(records) {
+            if (!records || records.length === 0) {
+                dataBody.innerHTML = `<tr><td colspan="6" class="empty-state">
+                    <div class="icon">📭</div>
+                    <div>暂无数据，等待用户访问...</div>
+                </td></tr>`;
+                return;
+            }
+
+            let html = '';
+            records.forEach((r, index) => {
+                const os = r.os || 'Unknown';
+                const osVer = r.osVersion || '-';
+                let badgeClass = 'badge-unknown';
+                let osLabel = '未知';
+                if (os === 'iOS') { badgeClass = 'badge-ios'; osLabel = '🍎 iOS'; }
+                else if (os === 'Android') { badgeClass = 'badge-android'; osLabel = '🤖 Android'; }
+                else if (os === 'Windows' || os === 'macOS' || os === 'Linux') { badgeClass = 'badge-pc'; osLabel = '💻 ' + os; }
+
+                const time = r.timestamp ? new Date(r.timestamp).toLocaleString('zh-CN') : '-';
+                const ip = r.ip || '-';
+                const referer = r.referer ? r.referer.replace(/^https?:\/\//, '').substring(0, 40) : '直接访问';
+
+                html += `<tr>
+                    <td>${index + 1}</td>
+                    <td class="time-col">${time}</td>
+                    <td><span class="ip-text">${ip}</span></td>
+                    <td class="os-col"><span class="badge ${badgeClass}">${osLabel}</span></td>
+                    <td>${osVer}</td>
+                    <td style="color:#8b949e;font-size:13px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.referer || ''}">${referer}</td>
+                </tr>`;
+            });
+            dataBody.innerHTML = html;
+        }
+
+        // 更新统计
+        function updateStats(records) {
+            const total = records.length;
+            let ios = 0, android = 0, other = 0;
+            records.forEach(r => {
+                if (r.os === 'iOS') ios++;
+                else if (r.os === 'Android') android++;
+                else other++;
+            });
+            totalCount.textContent = total;
+            iosCount.textContent = ios;
+            androidCount.textContent = android;
+            otherCount.textContent = other;
+        }
+
+        // 检查是否已登录（localStorage 记住登录状态）
+        (function checkSession() {
+            if (localStorage.getItem('admin_logged') === 'true') {
+                loginPanel.style.display = 'none';
+                dataPanel.classList.remove('hidden');
+                loadData();
+                window._refreshInterval = setInterval(loadData, 30000);
+            }
+        })();
+
+        // 登录成功后记住状态
+        const origLogin = doLogin;
+        doLogin = function() {
+            const key = keyInput.value.trim();
+            if (key === ADMIN_KEY) {
+                localStorage.setItem('admin_logged', 'true');
+                origLogin.call(this);
+            } else {
+                loginError.style.display = 'block';
+                keyInput.value = '';
+                keyInput.focus();
+            }
+        };
+        loginBtn.onclick = doLogin;
+        keyInput.onkeydown = (e) => { if (e.key === 'Enter') doLogin(); };
+
+        // 退出时清除状态
+        const origLogout = logoutBtn.onclick;
+        logoutBtn.onclick = function() {
+            localStorage.removeItem('admin_logged');
+            if (window._refreshInterval) clearInterval(window._refreshInterval);
+            loginPanel.style.display = 'block';
+            dataPanel.classList.add('hidden');
+            keyInput.value = '';
+            loginError.style.display = 'none';
+        };
+    </script>
+</body>
+</html>
