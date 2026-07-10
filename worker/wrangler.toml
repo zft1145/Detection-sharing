@@ -1,15 +1,10 @@
-# ========== Worker 配置 ==========
+# ========== Worker 基本配置 ==========
 name = "lottery-tracking"
 main = "worker.js"
 compatibility_date = "2024-12-18"
 compatibility_flags = ["nodejs_compat"]
 
-# ========== 自定义域名 ==========
-[[routes]]
-pattern = "fxyzapi.zft1145.top/*"
-zone_id = "你的Zone ID"  # ⚠️ 需要填写你的Cloudflare Zone ID
-
-# ========== KV 绑定 ==========
+# ========== KV 命名空间绑定 ==========
 [[kv_namespaces]]
 binding = "MY_KV"
 id = "277638f83f6b4e9a851c53238a5668fb"
@@ -18,11 +13,3 @@ preview_id = "277638f83f6b4e9a851c53238a5668fb"
 # ========== 环境变量 ==========
 [vars]
 ENVIRONMENT = "production"
-
-# ========== 构建配置 ==========
-[build]
-command = "echo 'No build step required'"
-
-[build.upload]
-format = "modules"
-dir = "."
