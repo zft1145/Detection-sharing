@@ -1,31 +1,57 @@
 // ========== Cloudflare Worker ==========
-// 绑定KV命名空间: 在wrangler.toml中配置
+// 自定义域名: fxyzapi.zft1145.top
+
+// 密钥（使用SHA-256加密存储）
+const ADMIN_KEY_HASH = '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918'; // 'admin123' 的SHA-256
+
+// 验证密钥
+async function verifyKey(key) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(key);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashHex === ADMIN_KEY_HASH;
+}
 
 export default {
     async fetch(request, env) {
         const url = new URL(request.url);
         const method = request.method;
 
-        // ---------- 处理OPTIONS预检（CORS） ----------
+        // ---------- CORS 预检 ----------
         if (method === 'OPTIONS') {
             return new Response(null, {
                 headers: {
                     'Access-Control-Allow-Origin': '*',
                     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-                    'Access-Control-Allow-Headers': 'Content-Type',
+                    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
                     'Access-Control-Max-Age': '86400',
                 },
             });
         }
 
-        // ---------- GET请求：管理后台拉取数据 ----------
+        // ---------- GET：管理后台拉取数据 ----------
         if (method === 'GET') {
             const adminKey = url.searchParams.get('key');
             const isAdmin = url.searchParams.get('admin');
 
-            // 验证管理员密钥
-            const VALID_KEY = 'Lucky2026@Secure!'; // ⚠️ 必须与admin.html中的密钥一致
-            if (isAdmin === 'true' && adminKey === VALID_KEY) {
+            if (isAdmin === 'true' && adminKey) {
+                // 验证密钥
+                const isValid = await verifyKey(adminKey);
+                if (!isValid) {
+                    return new Response(JSON.stringify({ 
+                        success: false, 
+                        error: 'Invalid key' 
+                    }), {
+                        status: 401,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Access-Control-Allow-Origin': '*',
+                        },
+                    });
+                }
+
                 try {
                     const records = await getRecords(env);
                     return new Response(JSON.stringify({ 
@@ -52,19 +78,19 @@ export default {
                 }
             }
 
-            // 非管理员访问，返回404伪装
+            // 非管理员访问返回404
             return new Response('Not Found', { 
                 status: 404,
                 headers: { 'Access-Control-Allow-Origin': '*' }
             });
         }
 
-        // ---------- POST请求：接收数据 ----------
+        // ---------- POST：接收数据 ----------
         if (method === 'POST') {
             try {
                 const body = await request.json();
                 
-                // 获取真实IP（Cloudflare自动处理）
+                // 获取真实IP
                 const ip = request.headers.get('CF-Connecting-IP') || 
                           request.headers.get('X-Forwarded-For')?.split(',')[0] || 
                           'unknown';
@@ -112,7 +138,6 @@ export default {
             }
         }
 
-        // 其他方法返回404
         return new Response('Not Found', { 
             status: 404,
             headers: { 'Access-Control-Allow-Origin': '*' }
@@ -122,10 +147,9 @@ export default {
 
 // ---------- KV操作函数 ----------
 async function saveRecord(env, record) {
-    // 使用活动ID作为key的一部分，方便分类
     const key = `record_${record.activityId}_${record.id}`;
     await env.MY_KV.put(key, JSON.stringify(record), {
-        expirationTtl: 2592000, // 30天后自动过期（节省存储）
+        expirationTtl: 2592000, // 30天
     });
 }
 
@@ -138,13 +162,10 @@ async function getRecords(env) {
         if (value) {
             try {
                 records.push(JSON.parse(value));
-            } catch (e) {
-                // 忽略解析失败的数据
-            }
+            } catch (e) {}
         }
     }
     
-    // 按时间倒序（最新的在前）
     records.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     return records;
 }
