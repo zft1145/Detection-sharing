@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>抽奖数据管理后台</title>
+    <title>抽奖链接管理后台</title>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body {
@@ -13,10 +13,9 @@
             padding: 20px;
             min-height: 100vh;
         }
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        /* 登录框 */
         .login-box {
             max-width: 420px;
             margin: 100px auto;
@@ -26,16 +25,8 @@
             padding: 40px 30px;
             text-align: center;
         }
-        .login-box h2 {
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #f0f6fc;
-        }
-        .login-box p {
-            color: #8b949e;
-            font-size: 14px;
-            margin-bottom: 25px;
-        }
+        .login-box h2 { margin-bottom: 8px; color: #f0f6fc; }
+        .login-box p { color: #8b949e; font-size: 14px; margin-bottom: 25px; }
         .login-box input {
             width: 100%;
             padding: 12px 16px;
@@ -45,11 +36,8 @@
             color: #c9d1d9;
             font-size: 16px;
             outline: none;
-            transition: border 0.3s;
         }
-        .login-box input:focus {
-            border-color: #58a6ff;
-        }
+        .login-box input:focus { border-color: #58a6ff; }
         .login-box button {
             width: 100%;
             margin-top: 16px;
@@ -61,7 +49,6 @@
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: background 0.3s;
         }
         .login-box button:hover { background: #2ea043; }
         .login-box .error {
@@ -70,6 +57,9 @@
             margin-top: 12px;
             display: none;
         }
+        .login-box .error.show { display: block; }
+
+        /* 主界面 */
         .header {
             display: flex;
             justify-content: space-between;
@@ -80,18 +70,7 @@
             border-bottom: 1px solid #30363d;
             margin-bottom: 25px;
         }
-        .header h1 {
-            font-size: 24px;
-            font-weight: 600;
-            color: #f0f6fc;
-        }
-        .header .stats {
-            display: flex;
-            gap: 25px;
-            font-size: 14px;
-            color: #8b949e;
-        }
-        .header .stats span { color: #f0f6fc; font-weight: 600; }
+        .header h1 { font-size: 24px; color: #f0f6fc; }
         .header .logout-btn {
             padding: 8px 20px;
             background: #21262d;
@@ -99,128 +78,279 @@
             border-radius: 6px;
             color: #c9d1d9;
             cursor: pointer;
-            font-size: 13px;
-            transition: all 0.3s;
         }
         .header .logout-btn:hover {
-            background: #30363d;
             border-color: #f85149;
             color: #f85149;
         }
-        .table-wrap {
-            overflow-x: auto;
+
+        .hidden { display: none; }
+
+        /* 创建链接表单 */
+        .create-form {
             background: #161b22;
-            border-radius: 12px;
             border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 25px 30px;
+            margin-bottom: 30px;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 14px;
-            min-width: 900px;
+        .create-form h3 { color: #f0f6fc; margin-bottom: 15px; }
+        .form-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: end;
         }
-        th {
-            text-align: left;
-            padding: 14px 16px;
-            background: #0d1117;
-            color: #8b949e;
-            font-weight: 500;
-            border-bottom: 1px solid #30363d;
-            white-space: nowrap;
-            position: sticky;
-            top: 0;
-            z-index: 2;
+        .form-group {
+            flex: 1;
+            min-width: 200px;
         }
-        td {
-            padding: 12px 16px;
-            border-bottom: 1px solid #21262d;
-            vertical-align: middle;
-        }
-        tr:hover td { background: #1c2128; }
-        .badge {
-            display: inline-block;
-            padding: 2px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 500;
-        }
-        .badge-ios { background: #1a3a4a; color: #58a6ff; }
-        .badge-android { background: #2d1f1f; color: #f0883e; }
-        .badge-pc { background: #21262d; color: #8b949e; }
-        .badge-unknown { background: #161b22; color: #484f58; }
-        .ip-text {
-            font-family: 'Monaco', 'Menlo', monospace;
+        .form-group label {
+            display: block;
             font-size: 13px;
-            color: #58a6ff;
+            color: #8b949e;
+            margin-bottom: 5px;
         }
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #484f58;
-        }
-        .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
-        .refresh-btn {
-            padding: 6px 16px;
-            background: #21262d;
+        .form-group input {
+            width: 100%;
+            padding: 10px 14px;
+            background: #0d1117;
             border: 1px solid #30363d;
             border-radius: 6px;
             color: #c9d1d9;
+            font-size: 14px;
+            outline: none;
+        }
+        .form-group input:focus { border-color: #58a6ff; }
+        .btn-create {
+            padding: 10px 30px;
+            background: #1f6feb;
+            border: none;
+            border-radius: 6px;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+            min-width: 120px;
+        }
+        .btn-create:hover { background: #388bfd; }
+        .btn-create:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* 生成的链接展示 */
+        .link-result {
+            background: #0d1117;
+            border: 1px solid #238636;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-top: 15px;
+            display: none;
+        }
+        .link-result.show { display: block; }
+        .link-result .label { color: #8b949e; font-size: 13px; }
+        .link-result .url {
+            color: #58a6ff;
+            font-size: 18px;
+            word-break: break-all;
+            margin: 5px 0 10px;
+        }
+        .link-result .copy-btn {
+            padding: 6px 16px;
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            color: #c9d1d9;
             cursor: pointer;
             font-size: 13px;
-            transition: background 0.3s;
         }
-        .refresh-btn:hover { background: #30363d; }
-        .time-col { color: #8b949e; font-size: 13px; white-space: nowrap; }
-        .os-col { white-space: nowrap; }
-        .hidden { display: none; }
+        .link-result .copy-btn:hover { background: #30363d; }
+
+        /* 链接列表 */
+        .links-list {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .links-list .list-header {
+            display: grid;
+            grid-template-columns: 150px 1fr 80px 80px 100px;
+            padding: 12px 16px;
+            background: #0d1117;
+            color: #8b949e;
+            font-size: 13px;
+            font-weight: 500;
+            border-bottom: 1px solid #30363d;
+        }
+        .link-item {
+            display: grid;
+            grid-template-columns: 150px 1fr 80px 80px 100px;
+            padding: 12px 16px;
+            border-bottom: 1px solid #21262d;
+            align-items: center;
+            font-size: 14px;
+        }
+        .link-item:hover { background: #1c2128; }
+        .link-item .code {
+            color: #58a6ff;
+            font-family: monospace;
+            font-size: 16px;
+        }
+        .link-item .name { color: #f0f6fc; }
+        .link-item .visits { color: #f0883e; font-weight: 600; }
+        .link-item .status {
+            font-size: 12px;
+            padding: 2px 10px;
+            border-radius: 20px;
+        }
+        .link-item .status.active { background: #1a3a2a; color: #3fb950; }
+        .link-item .status.inactive { background: #3a1a1a; color: #f85149; }
+        .link-item .stats-btn {
+            padding: 4px 12px;
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            color: #c9d1d9;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .link-item .stats-btn:hover { background: #30363d; }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #484f58;
+        }
+
+        /* 统计弹窗 */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 800px;
+            width: 95%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal h3 { color: #f0f6fc; margin-bottom: 15px; }
+        .modal .close-btn {
+            float: right;
+            background: none;
+            border: none;
+            color: #8b949e;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        .modal .close-btn:hover { color: #f0f6fc; }
+        .modal table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .modal th {
+            text-align: left;
+            padding: 8px 10px;
+            background: #0d1117;
+            color: #8b949e;
+            border-bottom: 1px solid #30363d;
+        }
+        .modal td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #21262d;
+        }
+        .modal .ip { color: #58a6ff; font-family: monospace; }
     </style>
 </head>
 <body>
-    <div class="container" id="app">
+    <div class="container">
+        <!-- 登录 -->
         <div id="loginPanel" class="login-box">
             <h2>🔐 管理后台</h2>
             <p>请输入访问密钥</p>
-            <input type="password" id="keyInput" placeholder="请输入密钥..." autocomplete="off" />
+            <input type="password" id="keyInput" placeholder="请输入密钥..." />
             <button id="loginBtn">验证身份</button>
             <div class="error" id="loginError">❌ 密钥错误，请重试</div>
         </div>
 
-        <div id="dataPanel" class="hidden">
+        <!-- 主界面 -->
+        <div id="mainPanel" class="hidden">
             <div class="header">
+                <h1>🎯 抽奖链接管理</h1>
                 <div>
-                    <h1>📊 访问数据</h1>
-                    <div class="stats" style="margin-top:8px;">
-                        总记录: <span id="totalCount">0</span>
-                        · iOS: <span id="iosCount">0</span>
-                        · Android: <span id="androidCount">0</span>
-                        · PC/其他: <span id="otherCount">0</span>
-                    </div>
-                </div>
-                <div style="display:flex;gap:10px;align-items:center;">
-                    <button class="refresh-btn" id="refreshBtn">🔄 刷新</button>
+                    <span style="color:#8b949e;margin-right:15px;" id="userDisplay">管理员</span>
                     <button class="logout-btn" id="logoutBtn">退出</button>
                 </div>
             </div>
 
-            <div class="table-wrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>时间</th>
-                            <th>IP 地址</th>
-                            <th>设备类型</th>
-                            <th>系统版本</th>
-                            <th>来源页面</th>
-                        </tr>
-                    </thead>
-                    <tbody id="dataBody">
-                        <tr><td colspan="6" class="empty-state">
-                            <div class="icon">📭</div>
-                            <div>暂无数据，等待用户访问...</div>
-                        </td></tr>
-                    </tbody>
-                </table>
+            <!-- 创建链接 -->
+            <div class="create-form">
+                <h3>📝 创建追踪链接</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>活动名称</label>
+                        <input type="text" id="activityName" placeholder="如：618抽奖活动" value="QQ群抽奖活动" />
+                    </div>
+                    <div class="form-group">
+                        <label>跳转目标 URL</label>
+                        <input type="url" id="targetUrl" placeholder="https://cjblts.zft1145.top/index.html" value="https://cjblts.zft1145.top/index.html" />
+                    </div>
+                    <button class="btn-create" id="createBtn">🚀 生成链接</button>
+                </div>
+                <div class="link-result" id="linkResult">
+                    <div class="label">✅ 链接已生成：</div>
+                    <div class="url" id="generatedUrl"></div>
+                    <button class="copy-btn" id="copyBtn">📋 复制链接</button>
+                    <button class="copy-btn" style="margin-left:10px;" id="viewStatsBtn">📊 查看统计</button>
+                </div>
+            </div>
+
+            <!-- 链接列表 -->
+            <div class="links-list">
+                <div class="list-header">
+                    <span>短码</span>
+                    <span>活动名称</span>
+                    <span>访问量</span>
+                    <span>状态</span>
+                    <span>操作</span>
+                </div>
+                <div id="linksContainer">
+                    <div class="empty-state">暂无链接，创建第一个吧！</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 统计弹窗 -->
+        <div class="modal-overlay" id="statsModal">
+            <div class="modal">
+                <button class="close-btn" id="modalClose">&times;</button>
+                <h3 id="modalTitle">📊 访问统计</h3>
+                <div style="color:#8b949e;font-size:14px;margin-bottom:15px;">
+                    总访问量：<span id="modalTotal" style="color:#f0883e;font-weight:600;">0</span>
+                </div>
+                <div id="modalBody">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>时间</th>
+                                <th>IP</th>
+                                <th>设备</th>
+                                <th>系统版本</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalTableBody">
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -228,128 +358,243 @@
     <script>
         (function() {
             const WORKER_URL = 'https://fxyzapi.zft1145.top';
-            
-            // ⚠️ 管理员密钥（明文只存在于前端JS中，后端用SHA-256验证）
-            const ADMIN_KEY = 'admin123';
+            let adminKey = '';
 
-            let currentData = [];
-
+            // DOM
             const loginPanel = document.getElementById('loginPanel');
-            const dataPanel = document.getElementById('dataPanel');
+            const mainPanel = document.getElementById('mainPanel');
             const keyInput = document.getElementById('keyInput');
             const loginBtn = document.getElementById('loginBtn');
             const loginError = document.getElementById('loginError');
             const logoutBtn = document.getElementById('logoutBtn');
-            const refreshBtn = document.getElementById('refreshBtn');
-            const dataBody = document.getElementById('dataBody');
-            const totalCount = document.getElementById('totalCount');
-            const iosCount = document.getElementById('iosCount');
-            const androidCount = document.getElementById('androidCount');
-            const otherCount = document.getElementById('otherCount');
+            const createBtn = document.getElementById('createBtn');
+            const activityName = document.getElementById('activityName');
+            const targetUrl = document.getElementById('targetUrl');
+            const linkResult = document.getElementById('linkResult');
+            const generatedUrl = document.getElementById('generatedUrl');
+            const copyBtn = document.getElementById('copyBtn');
+            const viewStatsBtn = document.getElementById('viewStatsBtn');
+            const linksContainer = document.getElementById('linksContainer');
+            const statsModal = document.getElementById('statsModal');
+            const modalClose = document.getElementById('modalClose');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalTotal = document.getElementById('modalTotal');
+            const modalTableBody = document.getElementById('modalTableBody');
 
+            // ---------- 登录 ----------
             async function doLogin() {
                 const key = keyInput.value.trim();
-                if (key === ADMIN_KEY) {
-                    loginPanel.style.display = 'none';
-                    dataPanel.classList.remove('hidden');
-                    loginError.style.display = 'none';
-                    localStorage.setItem('admin_logged', 'true');
-                    await loadData();
-                    if (window._refreshInterval) clearInterval(window._refreshInterval);
-                    window._refreshInterval = setInterval(loadData, 30000);
-                } else {
-                    loginError.style.display = 'block';
-                    keyInput.value = '';
-                    keyInput.focus();
+                if (!key) {
+                    loginError.textContent = '⚠️ 请输入密钥';
+                    loginError.classList.add('show');
+                    return;
                 }
-            }
 
-            loginBtn.addEventListener('click', doLogin);
-            keyInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+                loginError.classList.remove('show');
 
-            logoutBtn.addEventListener('click', () => {
-                if (window._refreshInterval) clearInterval(window._refreshInterval);
-                localStorage.removeItem('admin_logged');
-                loginPanel.style.display = 'block';
-                dataPanel.classList.add('hidden');
-                keyInput.value = '';
-                loginError.style.display = 'none';
-            });
-
-            refreshBtn.addEventListener('click', loadData);
-
-            async function loadData() {
                 try {
-                    const res = await fetch(WORKER_URL + '?admin=true&key=' + ADMIN_KEY);
-                    if (!res.ok) throw new Error('请求失败');
-                    const data = await res.json();
-                    currentData = data.records || [];
-                    renderTable(currentData);
-                    updateStats(currentData);
+                    const res = await fetch(WORKER_URL + '/admin/links?key=' + encodeURIComponent(key));
+                    if (res.status === 401) {
+                        loginError.textContent = '❌ 密钥错误，请重试';
+                        loginError.classList.add('show');
+                        keyInput.value = '';
+                        return;
+                    }
+                    
+                    if (res.ok) {
+                        adminKey = key;
+                        localStorage.setItem('admin_key', key);
+                        loginPanel.style.display = 'none';
+                        mainPanel.classList.remove('hidden');
+                        loadLinks();
+                    } else {
+                        loginError.textContent = '❌ 登录失败，请重试';
+                        loginError.classList.add('show');
+                    }
                 } catch (err) {
-                    console.error('加载失败:', err);
-                    dataBody.innerHTML = `<tr><td colspan="6" class="empty-state">
-                        <div class="icon">⚠️</div>
-                        <div>加载失败，请检查网络或Worker配置</div>
-                    </td></tr>`;
+                    loginError.textContent = '⚠️ 网络错误';
+                    loginError.classList.add('show');
                 }
             }
 
-            function renderTable(records) {
-                if (!records || records.length === 0) {
-                    dataBody.innerHTML = `<tr><td colspan="6" class="empty-state">
-                        <div class="icon">📭</div>
-                        <div>暂无数据，等待用户访问...</div>
-                    </td></tr>`;
+            // ---------- 加载链接列表 ----------
+            async function loadLinks() {
+                try {
+                    const res = await fetch(WORKER_URL + '/admin/links?key=' + encodeURIComponent(adminKey));
+                    if (!res.ok) throw new Error('加载失败');
+                    const data = await res.json();
+                    renderLinks(data.links || []);
+                } catch (err) {
+                    console.error(err);
+                    linksContainer.innerHTML = '<div class="empty-state">⚠️ 加载失败</div>';
+                }
+            }
+
+            // ---------- 渲染链接列表 ----------
+            function renderLinks(links) {
+                if (!links || links.length === 0) {
+                    linksContainer.innerHTML = '<div class="empty-state">📭 暂无链接，创建第一个吧！</div>';
                     return;
                 }
 
                 let html = '';
-                records.forEach((r, index) => {
-                    const os = r.os || 'Unknown';
-                    const osVer = r.osVersion || '-';
-                    let badgeClass = 'badge-unknown';
-                    let osLabel = '未知';
-                    if (os === 'iOS') { badgeClass = 'badge-ios'; osLabel = '🍎 iOS'; }
-                    else if (os === 'Android') { badgeClass = 'badge-android'; osLabel = '🤖 Android'; }
-                    else if (os === 'Windows' || os === 'macOS' || os === 'Linux') { badgeClass = 'badge-pc'; osLabel = '💻 ' + os; }
-
-                    const time = r.timestamp ? new Date(r.timestamp).toLocaleString('zh-CN') : '-';
-                    const ip = r.ip || '-';
-                    const referer = r.referer ? r.referer.replace(/^https?:\/\//, '').substring(0, 40) : '直接访问';
-
-                    html += `<tr>
-                        <td>${index + 1}</td>
-                        <td class="time-col">${time}</td>
-                        <td><span class="ip-text">${ip}</span></td>
-                        <td class="os-col"><span class="badge ${badgeClass}">${osLabel}</span></td>
-                        <td>${osVer}</td>
-                        <td style="color:#8b949e;font-size:13px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.referer || ''}">${referer}</td>
-                    </tr>`;
+                links.forEach(link => {
+                    const statusClass = link.enabled !== false ? 'active' : 'inactive';
+                    const statusText = link.enabled !== false ? '✅ 启用' : '⛔ 禁用';
+                    html += `
+                        <div class="link-item">
+                            <span class="code">/${link.shortCode}</span>
+                            <span class="name">${link.activityName || '未命名'}</span>
+                            <span class="visits">${link.visits || 0}</span>
+                            <span class="status ${statusClass}">${statusText}</span>
+                            <div>
+                                <button class="stats-btn" data-code="${link.shortCode}">📊 统计</button>
+                            </div>
+                        </div>
+                    `;
                 });
-                dataBody.innerHTML = html;
+                linksContainer.innerHTML = html;
+
+                // 绑定统计按钮
+                document.querySelectorAll('.stats-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const code = this.dataset.code;
+                        showStats(code);
+                    });
+                });
             }
 
-            function updateStats(records) {
-                const total = records.length;
-                let ios = 0, android = 0, other = 0;
-                records.forEach(r => {
-                    if (r.os === 'iOS') ios++;
-                    else if (r.os === 'Android') android++;
-                    else other++;
-                });
-                totalCount.textContent = total;
-                iosCount.textContent = ios;
-                androidCount.textContent = android;
-                otherCount.textContent = other;
+            // ---------- 创建链接 ----------
+            async function createLink() {
+                const name = activityName.value.trim() || '未命名活动';
+                const target = targetUrl.value.trim() || 'https://cjblts.zft1145.top/index.html';
+
+                createBtn.disabled = true;
+                createBtn.textContent = '⏳ 生成中...';
+
+                try {
+                    const res = await fetch(WORKER_URL + '/admin/create', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            key: adminKey,
+                            activityName: name,
+                            targetUrl: target,
+                            creator: 'admin'
+                        })
+                    });
+
+                    const data = await res.json();
+                    if (data.success) {
+                        const fullUrl = data.url;
+                        generatedUrl.textContent = fullUrl;
+                        linkResult.classList.add('show');
+                        // 保存当前短码用于查看统计
+                        linkResult.dataset.code = data.shortCode;
+                        // 刷新列表
+                        loadLinks();
+                    } else {
+                        alert('创建失败：' + (data.error || '未知错误'));
+                    }
+                } catch (err) {
+                    alert('创建失败：' + err.message);
+                }
+
+                createBtn.disabled = false;
+                createBtn.textContent = '🚀 生成链接';
             }
 
-            // 检查登录状态
-            if (localStorage.getItem('admin_logged') === 'true') {
+            // ---------- 查看统计 ----------
+            async function showStats(shortCode) {
+                try {
+                    const res = await fetch(WORKER_URL + '/admin/stats/' + shortCode + '?key=' + encodeURIComponent(adminKey));
+                    if (!res.ok) throw new Error('加载失败');
+                    const data = await res.json();
+
+                    modalTitle.textContent = '📊 ' + (data.link.activityName || '未命名') + ' - 访问统计';
+                    modalTotal.textContent = data.totalVisits;
+
+                    let html = '';
+                    (data.visits || []).forEach(v => {
+                        const time = v.timestamp ? new Date(v.timestamp).toLocaleString('zh-CN') : '-';
+                        const device = v.deviceType || v.os || '未知';
+                        const osVer = v.osVersion || '-';
+                        html += `
+                            <tr>
+                                <td>${time}</td>
+                                <td class="ip">${v.ip || '-'}</td>
+                                <td>${device}</td>
+                                <td>${osVer}</td>
+                            </tr>
+                        `;
+                    });
+
+                    if (!html) {
+                        html = '<tr><td colspan="4" style="text-align:center;color:#484f58;padding:20px;">暂无访问记录</td></tr>';
+                    }
+
+                    modalTableBody.innerHTML = html;
+                    statsModal.classList.add('show');
+                } catch (err) {
+                    alert('加载统计失败：' + err.message);
+                }
+            }
+
+            // ---------- 复制链接 ----------
+            function copyLink() {
+                const url = generatedUrl.textContent;
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(url).then(() => {
+                        copyBtn.textContent = '✅ 已复制';
+                        setTimeout(() => { copyBtn.textContent = '📋 复制链接'; }, 2000);
+                    });
+                } else {
+                    // fallback
+                    const input = document.createElement('input');
+                    input.value = url;
+                    document.body.appendChild(input);
+                    input.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(input);
+                    copyBtn.textContent = '✅ 已复制';
+                    setTimeout(() => { copyBtn.textContent = '📋 复制链接'; }, 2000);
+                }
+            }
+
+            // ---------- 退出 ----------
+            function logout() {
+                localStorage.removeItem('admin_key');
+                adminKey = '';
+                loginPanel.style.display = 'block';
+                mainPanel.classList.add('hidden');
+                keyInput.value = '';
+                loginError.classList.remove('show');
+            }
+
+            // ---------- 事件绑定 ----------
+            loginBtn.addEventListener('click', doLogin);
+            keyInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+            logoutBtn.addEventListener('click', logout);
+            createBtn.addEventListener('click', createLink);
+            copyBtn.addEventListener('click', copyLink);
+            modalClose.addEventListener('click', () => statsModal.classList.remove('show'));
+            statsModal.addEventListener('click', (e) => {
+                if (e.target === statsModal) statsModal.classList.remove('show');
+            });
+
+            // 查看统计（从生成结果）
+            viewStatsBtn.addEventListener('click', function() {
+                const code = linkResult.dataset.code;
+                if (code) showStats(code);
+            });
+
+            // ---------- 检查登录状态 ----------
+            const savedKey = localStorage.getItem('admin_key');
+            if (savedKey) {
+                adminKey = savedKey;
                 loginPanel.style.display = 'none';
-                dataPanel.classList.remove('hidden');
-                loadData();
-                window._refreshInterval = setInterval(loadData, 30000);
+                mainPanel.classList.remove('hidden');
+                loadLinks();
             }
         })();
     </script>
