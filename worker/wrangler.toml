@@ -1,0 +1,13 @@
+name = "lottery-tracker"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+# KV命名空间绑定
+[[kv_namespaces]]
+binding = "MY_KV"
+id = "你的KV命名空间ID"  # ⚠️ 需要先创建KV，然后填写这里
+preview_id = "你的预览ID"
+
+# 环境变量（可选）
+[vars]
+ENVIRONMENT = "production"
