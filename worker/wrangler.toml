@@ -1,4 +1,4 @@
-# ========== Worker 基本配置 ==========
+# ========== Worker 配置 ==========
 name = "lottery-tracking"
 main = "worker.js"
 compatibility_date = "2024-12-18"
@@ -10,6 +10,7 @@ binding = "MY_KV"
 id = "277638f83f6b4e9a851c53238a5668fb"
 preview_id = "277638f83f6b4e9a851c53238a5668fb"
 
-# ========== 环境变量 ==========
+# ========== 环境变量（密钥存放在这里！）==========
 [vars]
 ENVIRONMENT = "production"
+ADMIN_KEY = "zft11456662011"  # ⚠️ 改成你自己的密钥！

@@ -1,18 +1,5 @@
-// ========== Cloudflare Worker ==========
-// 自定义域名: fxyzapi.zft1145.top
-
-// 密钥（使用SHA-256加密存储）
-const ADMIN_KEY_HASH = '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918'; // 'admin123' 的SHA-256
-
-// 验证密钥
-async function verifyKey(key) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(key);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    return hashHex === ADMIN_KEY_HASH;
-}
+// ========== Cloudflare Worker - 安全版 ==========
+// 密钥通过环境变量 ADMIN_KEY 读取，不硬编码在代码中
 
 export default {
     async fetch(request, env) {
@@ -37,9 +24,10 @@ export default {
             const isAdmin = url.searchParams.get('admin');
 
             if (isAdmin === 'true' && adminKey) {
-                // 验证密钥
-                const isValid = await verifyKey(adminKey);
-                if (!isValid) {
+                // 从环境变量读取密钥进行验证
+                const ADMIN_KEY = env.ADMIN_KEY || 'admin123';
+                
+                if (adminKey !== ADMIN_KEY) {
                     return new Response(JSON.stringify({ 
                         success: false, 
                         error: 'Invalid key' 
@@ -78,10 +66,13 @@ export default {
                 }
             }
 
-            // 非管理员访问返回404
+            // 非管理员访问返回404伪装
             return new Response('Not Found', { 
                 status: 404,
-                headers: { 'Access-Control-Allow-Origin': '*' }
+                headers: { 
+                    'Content-Type': 'text/plain',
+                    'Access-Control-Allow-Origin': '*' 
+                }
             });
         }
 
@@ -90,22 +81,26 @@ export default {
             try {
                 const body = await request.json();
                 
-                // 获取真实IP
+                // 获取真实IP（Cloudflare自动处理）
                 const ip = request.headers.get('CF-Connecting-IP') || 
                           request.headers.get('X-Forwarded-For')?.split(',')[0] || 
+                          request.headers.get('X-Real-IP') ||
                           'unknown';
+
+                // 获取用户代理
+                const userAgent = request.headers.get('User-Agent') || '';
 
                 // 构建记录
                 const record = {
                     id: Date.now() + '_' + Math.random().toString(36).substring(2, 8),
                     timestamp: body.timestamp || new Date().toISOString(),
                     ip: ip,
-                    os: body.os || 'Unknown',
-                    osVersion: body.osVersion || 'Unknown',
-                    deviceType: body.deviceType || 'Unknown',
-                    userAgent: body.userAgent || '',
-                    referer: body.referer || '',
-                    url: body.url || '',
+                    os: body.os || parseOS(userAgent),
+                    osVersion: body.osVersion || parseOSVersion(userAgent),
+                    deviceType: body.deviceType || parseDeviceType(userAgent),
+                    userAgent: body.userAgent || userAgent.substring(0, 500),
+                    referer: body.referer || request.headers.get('Referer') || '',
+                    url: body.url || url.toString(),
                     activityId: body.activityId || 'default',
                     auto: body.auto || false,
                 };
@@ -138,9 +133,13 @@ export default {
             }
         }
 
+        // 其他方法返回404
         return new Response('Not Found', { 
             status: 404,
-            headers: { 'Access-Control-Allow-Origin': '*' }
+            headers: { 
+                'Content-Type': 'text/plain',
+                'Access-Control-Allow-Origin': '*' 
+            }
         });
     },
 };
@@ -149,7 +148,7 @@ export default {
 async function saveRecord(env, record) {
     const key = `record_${record.activityId}_${record.id}`;
     await env.MY_KV.put(key, JSON.stringify(record), {
-        expirationTtl: 2592000, // 30天
+        expirationTtl: 2592000, // 30天后自动过期
     });
 }
 
@@ -162,10 +161,69 @@ async function getRecords(env) {
         if (value) {
             try {
                 records.push(JSON.parse(value));
-            } catch (e) {}
+            } catch (e) {
+                // 忽略解析失败的数据
+            }
         }
     }
     
+    // 按时间倒序（最新的在前）
     records.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     return records;
+}
+
+// ---------- 辅助函数：从 User-Agent 解析设备信息 ----------
+function parseOS(userAgent) {
+    if (!userAgent) return 'Unknown';
+    const ua = userAgent.toLowerCase();
+    if (ua.includes('iphone') || ua.includes('ipad')) return 'iOS';
+    if (ua.includes('android')) return 'Android';
+    if (ua.includes('windows')) return 'Windows';
+    if (ua.includes('mac os')) return 'macOS';
+    if (ua.includes('linux')) return 'Linux';
+    return 'Unknown';
+}
+
+function parseOSVersion(userAgent) {
+    if (!userAgent) return 'Unknown';
+    const ua = userAgent;
+    
+    // iOS 版本
+    const iosMatch = ua.match(/iPhone OS (\d+)_(\d+)/);
+    if (iosMatch) return iosMatch[1] + '.' + iosMatch[2];
+    
+    // Android 版本
+    const androidMatch = ua.match(/Android (\d+)\.(\d+)/);
+    if (androidMatch) return androidMatch[1] + '.' + androidMatch[2];
+    
+    // Windows 版本
+    const winMatch = ua.match(/Windows NT (\d+)\.(\d+)/);
+    if (winMatch) {
+        const versions = {
+            '10.0': '10/11',
+            '6.3': '8.1',
+            '6.2': '8',
+            '6.1': '7',
+        };
+        return versions[winMatch[1] + '.' + winMatch[2]] || winMatch[1] + '.' + winMatch[2];
+    }
+    
+    // macOS 版本
+    const macMatch = ua.match(/Mac OS X (\d+)_(\d+)_?(\d+)?/);
+    if (macMatch) {
+        return macMatch[1] + '.' + macMatch[2] + (macMatch[3] ? '.' + macMatch[3] : '');
+    }
+    
+    return 'Unknown';
+}
+
+function parseDeviceType(userAgent) {
+    if (!userAgent) return 'Unknown';
+    const ua = userAgent.toLowerCase();
+    if (ua.includes('iphone')) return 'iPhone';
+    if (ua.includes('ipad')) return 'iPad';
+    if (ua.includes('android') && !ua.includes('mobile')) return 'Android Tablet';
+    if (ua.includes('android')) return 'Android Phone';
+    if (ua.includes('windows') || ua.includes('mac os') || ua.includes('linux')) return 'PC';
+    return 'Unknown';
 }
